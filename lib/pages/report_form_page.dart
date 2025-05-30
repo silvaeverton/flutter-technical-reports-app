@@ -8,9 +8,10 @@ import 'package:form_builder_validators/form_builder_validators.dart';
 import 'package:form_builder_file_picker/form_builder_file_picker.dart';
 import 'package:form_builder_extra_fields/form_builder_extra_fields.dart';
 import 'package:signature/signature.dart';
+import 'package:http_parser/http_parser.dart';
 import 'package:intl/intl.dart';
 import 'package:http/http.dart' as http;
-import 'package:http_parser/http_parser.dart'; // para MediaType
+
 
 final rawAssinatura = _formKey.currentState?.value['assinatura_cliente'];
 Uint8List? assinatura;
@@ -23,24 +24,31 @@ class FormularioPage extends StatefulWidget {
 
 class _FormularioPageState extends State<FormularioPage> {
   final _formKey = GlobalKey<FormBuilderState>();
+  final SignatureController _signatureController = SignatureController(
+    penStrokeWidth: 3,
+    penColor: Colors.black,
+    exportBackgroundColor: Colors.white, // Fundo branco
+  );
+
+  final TextEditingController _nomeController = TextEditingController();
+  final TextEditingController _descricaoController = TextEditingController();
   bool revendaAcompanhou = false;
   bool encontrouProblemas = false;
   bool possuiObservacoes = false;
   bool entregaTecnicaRealizada = false;
   String? equipamentoSelecionado;
 
-  Future<void> enviarFormulario(Map<String, dynamic> dadosFormulario, Uint8List assinatura) async {
-    final uri = Uri.parse('http://SEU_BACKEND_URL/api/relatorios'); // Substitua pelo seu endpoint
+  Future<void> enviarFormulario(
+      Map<String, dynamic> dadosFormulario, Uint8List assinatura) async {
+    final uri = Uri.parse('http://192.168.49.225:8080/report');
     final request = http.MultipartRequest('POST', uri);
 
-    // Adiciona os campos do formulário como texto
     dadosFormulario.forEach((chave, valor) {
       if (valor != null && valor is! Uint8List && valor is! List) {
         request.fields[chave] = valor.toString();
       }
     });
 
-    // Adiciona a assinatura como arquivo
     request.files.add(http.MultipartFile.fromBytes(
       'assinatura_cliente',
       assinatura,
@@ -48,13 +56,13 @@ class _FormularioPageState extends State<FormularioPage> {
       contentType: MediaType('image', 'png'),
     ));
 
-    // Enviar a requisição
     final response = await request.send();
 
     if (response.statusCode == 200) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Formulário enviado com sucesso!')),
       );
+      _signatureController.clear();
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Erro ao enviar formulário.')),
@@ -62,14 +70,16 @@ class _FormularioPageState extends State<FormularioPage> {
     }
   }
 
-  // Essa é a função que chama a de envio (útil para validação)
-  void processarEnvio() {
-    final form = _formKey.currentState;
-    if (form != null && form.saveAndValidate()) {
-      final dados = form.value;
-      final assinatura = dados['assinatura_cliente'];
+  void processarEnvio() async {
+    if (_formKey.currentState!.validate()) {
+      final dados = {
+        'nome': _nomeController.text,
+        'descricao': _descricaoController.text,
+      };
 
-      if (assinatura is Uint8List) {
+      final assinatura = await _signatureController.toPngBytes();
+
+      if (assinatura != null && assinatura.isNotEmpty) {
         enviarFormulario(dados, assinatura);
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -78,10 +88,11 @@ class _FormularioPageState extends State<FormularioPage> {
       }
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Formulário inválido.')),
+        SnackBar(content: Text('Preencha todos os campos.')),
       );
     }
   }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -325,13 +336,25 @@ class _FormularioPageState extends State<FormularioPage> {
                   maxLines: 4,
                 ),
               SizedBox(height: 16),
-              FormBuilderSignaturePad(
-                name: 'assinatura_cliente',
-                decoration: InputDecoration(labelText: 'Assinatura do Cliente'),
-                border: Border.all(color: Colors.white),
-                height: 150,
+              Container(
+                decoration: BoxDecoration(
+                  border: Border.all(color: Colors.black), // borda preta visível
+                  color: Colors.white, // fundo branco
+                ),
+                child: FormBuilderSignaturePad(
+                  name: 'assinatura_cliente',
+                  height: 150,
+                  backgroundColor: Colors.white, // fundo branco real
+                  decoration: const InputDecoration(
+                    labelText: 'Assinatura do Cliente',
+                    labelStyle: TextStyle(color: Colors.black),
+                    border: InputBorder.none, // remove a borda padrão do input
+                    contentPadding: EdgeInsets.all(8),
+                  ),
+                ),
               ),
-              SizedBox(height: 24),
+              const SizedBox(height: 24),
+
               ElevatedButton(
                 onPressed: () {
                   _formKey.currentState!.save();
@@ -341,7 +364,6 @@ class _FormularioPageState extends State<FormularioPage> {
                   if (assinaturaRaw is Uint8List) {
                     final dados = _formKey.currentState!.value;
 
-                    // Aqui você chama a função que envia os dados e a assinatura
                     enviarFormulario(dados, assinaturaRaw);
                   } else {
                     print('Assinatura não capturada corretamente');
@@ -350,7 +372,7 @@ class _FormularioPageState extends State<FormularioPage> {
                     );
                   }
                 },
-                child: Text('Enviar Formulário'),
+                child: const Text('Enviar Formulário'),
               ),
             ],
           ),
