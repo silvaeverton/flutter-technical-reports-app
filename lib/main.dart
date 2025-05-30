@@ -1,15 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:report/pages/home_page.dart';
+import 'package:report/pages/relatorios_enviados_page.dart';
 import 'package:report/pages/report_form_page.dart';
-import 'pages/home_page.dart';
+import 'package:report/pages/login_page.dart'; // Adicione este arquivo na pasta pages
 import 'core/theme/app_colors.dart';
-
-import 'package:flutter/material.dart';
-import 'formulario.dart';
-
 
 void main() {
   runApp(MyApp());
-
 }
 
 class MyApp extends StatelessWidget {
@@ -37,7 +34,12 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'Formulário de Atendimento',
       theme: theme,
-      home: HomePage(),
+      initialRoute: '/', // Início pelo login
+      routes: {
+        '/': (context) => LoginPage(),      // Tela de login
+        '/home': (context) => HomePage(),   // Tela após login
+        '/relatorios': (context) => RelatoriosEnviadosPage(),
+      },
     );
   }
 }
