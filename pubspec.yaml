@@ -1,0 +1,31 @@
+name: report
+description: "A new Flutter project."
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.7.0
+
+dependencies:
+  flutter:
+    sdk: flutter
+  cupertino_icons: ^1.0.8
+  http: ^1.4.0
+  signature: ^6.0.0
+  intl: ^0.19.0
+  file_picker: ^10.1.9
+  flutter_form_builder: ^10.0.1
+  form_builder_validators: ^11.1.2
+  form_builder_file_picker: ^5.0.0
+  form_builder_extra_fields: ^12.0.0  # Corrigido o nome e versão para compatibilidade
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/imagem_fundo_home.jpg
